@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum TipoUsuario {
+  PACIENTE
+  MEDICO
+  FARMACIA
+}
+
+enum StatusReceita {
+  ATIVA
+  DISPENSADA
+  VENCIDA
+  CANCELADA
+}
+
+enum Sexo {
+  MASCULINO
+  FEMININO
+  OUTRO
+}
+
+// ==================== MODELS ====================
+
+model Usuario {
+  id            String       @id @default(uuid())
+  email         String       @unique
+  senha         String
+  tipo          TipoUsuario
+  nome          String
+  ativo         Boolean      @default(true)
+  criadoEm      DateTime     @default(now()) @map("criado_em")
+  atualizadoEm  DateTime     @updatedAt @map("atualizado_em")
+
+  paciente      Paciente?
+  medico        Medico?
+  farmacia      Farmacia?
+  refreshTokens RefreshToken[]
+
+  @@map("usuarios")
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  token       String   @unique
+  usuarioId   String   @map("usuario_id")
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  expiraEm    DateTime @map("expira_em")
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  @@map("refresh_tokens")
+}
+
+model Paciente {
+  id            String    @id @default(uuid())
+  usuarioId     String    @unique @map("usuario_id")
+  usuario       Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  cpf           String    @unique
+  cartaoSus     String?   @map("cartao_sus")
+  dataNascimento DateTime @map("data_nascimento")
+  sexo          Sexo?
+  telefone      String?
+  endereco      String?
+  cidade        String?
+  estado        String?
+  cep           String?
+  criadoEm      DateTime  @default(now()) @map("criado_em")
+  atualizadoEm  DateTime  @updatedAt @map("atualizado_em")
+
+  receitas      Receita[]
+
+  @@map("pacientes")
+}
+
+model Medico {
+  id            String    @id @default(uuid())
+  usuarioId     String    @unique @map("usuario_id")
+  usuario       Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  crm           String
+  ufCrm         String    @map("uf_crm")
+  especialidade String?
+  telefone      String?
+  
+  // Dados da clínica/consultório
+  nomeClinica   String?   @map("nome_clinica")
+  enderecoClinica String? @map("endereco_clinica")
+  telefoneClinica String? @map("telefone_clinica")
+  
+  criadoEm      DateTime  @default(now()) @map("criado_em")
+  atualizadoEm  DateTime  @updatedAt @map("atualizado_em")
+
+  receitas      Receita[]
+
+  @@unique([crm, ufCrm])
+  @@map("medicos")
+}
+
+model Farmacia {
+  id            String    @id @default(uuid())
+  usuarioId     String    @unique @map("usuario_id")
+  usuario       Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  cnpj          String    @unique
+  crf           String
+  ufCrf         String    @map("uf_crf")
+  razaoSocial   String    @map("razao_social")
+  nomeFantasia  String?   @map("nome_fantasia")
+  telefone      String?
+  endereco      String?
+  cidade        String?
+  estado        String?
+  cep           String?
+  
+  criadoEm      DateTime  @default(now()) @map("criado_em")
+  atualizadoEm  DateTime  @updatedAt @map("atualizado_em")
+
+  dispensacoes  Dispensacao[]
+
+  @@map("farmacias")
+}
+
+model Receita {
+  id            String        @id @default(uuid())
+  codigo        String        @unique @default(cuid())
+  pacienteId    String        @map("paciente_id")
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id])
+  medicoId      String        @map("medico_id")
+  medico        Medico        @relation(fields: [medicoId], references: [id])
+  status        StatusReceita @default(ATIVA)
+  
+  // Datas
+  criadaEm      DateTime      @default(now()) @map("criada_em")
+  validadeAte   DateTime      @map("validade_ate")
+  atualizadaEm  DateTime      @updatedAt @map("atualizada_em")
+  
+  // Informações adicionais
+  observacoes   String?
+  diagnostico   String?
+  
+  itens         ItemReceita[]
+  dispensacao   Dispensacao?
+
+  @@index([pacienteId])
+  @@index([medicoId])
+  @@index([codigo])
+  @@index([status])
+  @@map("receitas")
+}
+
+model ItemReceita {
+  id            String    @id @default(uuid())
+  receitaId     String    @map("receita_id")
+  receita       Receita   @relation(fields: [receitaId], references: [id], onDelete: Cascade)
+  
+  medicamento   String
+  principioAtivo String?  @map("principio_ativo")
+  dosagem       String
+  formaFarmaceutica String? @map("forma_farmaceutica")
+  quantidade    Int
+  posologia     String
+  observacao    String?
+  
+  @@map("itens_receita")
+}
+
+model Dispensacao {
+  id            String    @id @default(uuid())
+  receitaId     String    @unique @map("receita_id")
+  receita       Receita   @relation(fields: [receitaId], references: [id])
+  farmaciaId    String    @map("farmacia_id")
+  farmacia      Farmacia  @relation(fields: [farmaciaId], references: [id])
+  
+  dataHora      DateTime  @default(now()) @map("data_hora")
+  observacoes   String?
+  
+  // Itens dispensados (pode ser parcial)
+  itensDispensados Json?  @map("itens_dispensados")
+
+  @@index([farmaciaId])
+  @@map("dispensacoes")
+}
+
+// ==================== UNIDADES DE SAÚDE ====================
+
+model UnidadeSaude {
+  id            String    @id @default(uuid())
+  nome          String
+  tipo          String
+  endereco      String
+  cidade        String
+  estado        String
+  cep           String?
+  telefone      String?
+  latitude      Float?
+  longitude     Float?
+  ativo         Boolean   @default(true)
+  
+  criadoEm      DateTime  @default(now()) @map("criado_em")
+  atualizadoEm  DateTime  @updatedAt @map("atualizado_em")
+
+  @@map("unidades_saude")
+}
