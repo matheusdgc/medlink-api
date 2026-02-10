@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { TipoUsuario } from "@prisma/client";
 import { receitasService } from "./receitas.service.js";
 import {
   criarReceitaSchema,
@@ -11,7 +12,7 @@ import {
 export class ReceitasController {
   async criar(req: Request, res: Response): Promise<void> {
     const data = criarReceitaSchema.parse(req.body);
-    const userId = req.user!.userId;
+    const userId = req.user!.userId as string;
 
     const receita = await receitasService.criar(userId, data);
 
@@ -23,8 +24,8 @@ export class ReceitasController {
   }
 
   async listar(req: Request, res: Response): Promise<void> {
-    const userId = req.user!.userId;
-    const userType = req.user!.tipo;
+    const userId = req.user!.userId as string;
+    const userType = req.user!.tipo as TipoUsuario;
     const filters = listarReceitasQuerySchema.parse(req.query);
 
     const result = await receitasService.listar(userId, userType, filters);
@@ -36,9 +37,9 @@ export class ReceitasController {
   }
 
   async buscarPorId(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
-    const userId = req.user!.userId;
-    const userType = req.user!.tipo;
+    const id = req.params.id as string;
+    const userId = req.user!.userId as string;
+    const userType = req.user!.tipo as TipoUsuario;
 
     const receita = await receitasService.buscarPorId(id, userId, userType);
 
@@ -49,7 +50,7 @@ export class ReceitasController {
   }
 
   async buscarPorCodigo(req: Request, res: Response): Promise<void> {
-    const { codigo } = req.params;
+    const codigo = req.params.codigo as string;
 
     const receita = await receitasService.buscarPorCodigo(codigo);
 
@@ -60,8 +61,8 @@ export class ReceitasController {
   }
 
   async atualizar(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
-    const userId = req.user!.userId;
+    const id = req.params.id as string;
+    const userId = req.user!.userId as string;
     const data = atualizarReceitaSchema.parse(req.body);
 
     const receita = await receitasService.atualizar(id, userId, data);
@@ -74,8 +75,8 @@ export class ReceitasController {
   }
 
   async cancelar(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
-    const userId = req.user!.userId;
+    const id = req.params.id as string;
+    const userId = req.user!.userId as string;
 
     const receita = await receitasService.cancelar(id, userId);
 
@@ -87,8 +88,8 @@ export class ReceitasController {
   }
 
   async dispensar(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
-    const userId = req.user!.userId;
+    const id = req.params.id as string;
+    const userId = req.user!.userId as string;
     const { observacoes, itensDispensados } = dispensarReceitaSchema.parse(
       req.body
     );
@@ -108,8 +109,8 @@ export class ReceitasController {
   }
 
   async renovar(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
-    const userId = req.user!.userId;
+    const id = req.params.id as string;
+    const userId = req.user!.userId as string;
     const { novaValidadeAte } = renovarReceitaSchema.parse(req.body);
 
     const novaReceita = await receitasService.renovar(
@@ -126,7 +127,7 @@ export class ReceitasController {
   }
 
   async historicoDispensacoes(req: Request, res: Response): Promise<void> {
-    const userId = req.user!.userId;
+    const userId = req.user!.userId as string;
     const { dataInicio, dataFim, pacienteNome, page, limit } = req.query;
 
     const result = await receitasService.historicoDispensacoes(userId, {

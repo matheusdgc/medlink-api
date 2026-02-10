@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { TipoUsuario } from "@prisma/client";
 import { pacienteService } from "./pacientes.service.js";
 import { z } from "zod";
 
@@ -44,9 +45,9 @@ export class PacientesController {
   }
 
   async buscarPorId(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
-    const userId = req.user!.userId;
-    const userType = req.user!.tipo;
+    const id = req.params.id as string;
+    const userId = req.user!.userId as string;
+    const userType = req.user!.tipo as TipoUsuario;
 
     const paciente = await pacienteService.buscarPorId(id, userId, userType);
 
@@ -70,9 +71,9 @@ export class PacientesController {
   }
 
   async historicoReceitas(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
-    const userId = req.user!.userId;
-    const userType = req.user!.tipo;
+    const id = req.params.id as string;
+    const userId = req.user!.userId as string;
+    const userType = req.user!.tipo as TipoUsuario;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
 
@@ -91,9 +92,9 @@ export class PacientesController {
   }
 
   async atualizar(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
-    const userId = req.user!.userId;
-    const userType = req.user!.tipo;
+    const id = req.params.id as string;
+    const userId = req.user!.userId as string;
+    const userType = req.user!.tipo as TipoUsuario;
     const data = atualizarPacienteSchema.parse(req.body);
 
     const paciente = await pacienteService.atualizar(

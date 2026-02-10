@@ -57,14 +57,13 @@ export interface RegisterFarmaciaRequest {
 }
 
 export interface RegisterPacienteRequest {
-  email: string;
-  senha: string;
   nome: string;
   cpf: string;
-  cartaoSus?: string;
   dataNascimento: string;
-  sexo?: "MASCULINO" | "FEMININO" | "OUTRO";
-  telefone?: string;
+  sexo: "MASCULINO" | "FEMININO" | "OUTRO";
+  telefone: string;
+  email?: string | null;
+  cartaoSus?: string | null;
 }
 
 // ==================== RESPONSE TYPES ====================

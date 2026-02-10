@@ -24,7 +24,7 @@ export class UnidadesSaudeController {
   }
 
   async buscarPorCep(req: Request, res: Response): Promise<void> {
-    const { cep } = req.params;
+    const cep = req.params.cep as string;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const tipo = req.query.tipo as string | undefined;
@@ -61,7 +61,7 @@ export class UnidadesSaudeController {
   }
 
   async buscarPorId(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const unidade = await unidadesSaudeService.buscarPorId(id);
 
@@ -111,7 +111,7 @@ export class UnidadesSaudeController {
   }
 
   async atualizar(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const {
       nome,
       tipo,
@@ -145,7 +145,7 @@ export class UnidadesSaudeController {
   }
 
   async excluir(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     await unidadesSaudeService.excluir(id);
 

@@ -470,7 +470,7 @@ export class ReceitasService {
         observacoes: receitaOriginal.observacoes,
         diagnostico: receitaOriginal.diagnostico,
         itens: {
-          create: receitaOriginal.itens.map((item) => ({
+          create: receitaOriginal.itens.map((item: any) => ({
             medicamento: item.medicamento,
             principioAtivo: item.principioAtivo,
             dosagem: item.dosagem,

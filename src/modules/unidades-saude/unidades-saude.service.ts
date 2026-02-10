@@ -160,7 +160,7 @@ export class UnidadesSaudeService {
       orderBy: { cidade: "asc" },
     });
 
-    return unidades.map((u) => u.cidade);
+    return unidades.map((u: { cidade: string }) => u.cidade);
   }
 
   async listarTipos() {
@@ -171,7 +171,7 @@ export class UnidadesSaudeService {
       orderBy: { tipo: "asc" },
     });
 
-    return unidades.map((u) => u.tipo);
+    return unidades.map((u: { tipo: string }) => u.tipo);
   }
 
   async criar(data: {
