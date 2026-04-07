@@ -123,6 +123,19 @@ export class AuthService {
       throw new UnauthorizedError("Data de nascimento incorreta");
     }
 
+    // Verifica o PIN se o paciente tiver um cadastrado.
+    // Pacientes antigos (sem PIN) continuam podendo logar normalmente,
+    // mas pacientes que definiram PIN precisam informa-lo.
+    if (paciente.pin) {
+      if (!data.pin) {
+        throw new UnauthorizedError("PIN obrigatório");
+      }
+      const pinValido = await bcrypt.compare(data.pin, paciente.pin);
+      if (!pinValido) {
+        throw new UnauthorizedError("PIN incorreto");
+      }
+    }
+
     if (!paciente.usuario.ativo) {
       throw new UnauthorizedError("Usuário inativo");
     }
@@ -295,6 +308,10 @@ export class AuthService {
 
     const senhaHash = await bcrypt.hash(Math.random().toString(36), 10);
 
+    // Se o PIN foi informado, faz o hash antes de salvar.
+    // Nunca armazenamos senhas ou PINs em texto puro no banco.
+    const pinHash = data.pin ? await bcrypt.hash(data.pin, 10) : null;
+
     const usuario = await prisma.usuario.create({
       data: {
         email: emailFinal,
@@ -308,6 +325,7 @@ export class AuthService {
             dataNascimento: new Date(data.dataNascimento),
             sexo: data.sexo,
             telefone: data.telefone,
+            pin: pinHash,
           },
         },
       },

@@ -25,6 +25,7 @@ export interface LoginRequest {
 export interface LoginPacienteRequest {
   cpfOuCartaoSus: string;
   dataNascimento: string;
+  pin?: string;
 }
 
 export interface RegisterMedicoRequest {
@@ -64,6 +65,7 @@ export interface RegisterPacienteRequest {
   telefone: string;
   email?: string | null;
   cartaoSus?: string | null;
+  pin?: string | null;
 }
 
 // ==================== RESPONSE TYPES ====================

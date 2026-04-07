@@ -13,6 +13,8 @@ import pacientesRoutes from "./modules/pacientes/pacientes.routes.js";
 import receitasRoutes from "./modules/receitas/receitas.routes.js";
 import unidadesSaudeRoutes from "./modules/unidades-saude/unidades-saude.routes.js";
 import bulasRoutes from "./modules/bulas/bulas.routes.js";
+import estatisticasRoutes from "./modules/estatisticas/estatisticas.routes.js";
+import adminRoutes from "./modules/admin/admin.routes.js";
 
 const app = express();
 const config = getEnvConfig();
@@ -52,6 +54,8 @@ app.use("/api/pacientes", pacientesRoutes);
 app.use("/api/receitas", receitasRoutes);
 app.use("/api/unidades-saude", unidadesSaudeRoutes);
 app.use("/api/bulas", bulasRoutes);
+app.use("/api/estatisticas", estatisticasRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({

@@ -5,6 +5,7 @@ import {
   ForbiddenError,
   ValidationError,
 } from "../../types/index.js";
+import { normalizarMedicamento, normalizarDiagnostico } from "../../utils/normalizar.js";
 
 interface CriarReceitaInput {
   pacienteId: string;
@@ -30,6 +31,27 @@ interface AtualizarReceitaInput {
 }
 
 export class ReceitasService {
+  /**
+   * Verifica e atualiza receitas que estao ativas mas ja passaram da data de validade.
+   * Essa funcao implementa o padrao "lazy expiration": ao inves de um cron job
+   * rodando periodicamente, a verificacao acontece no momento da consulta.
+   * Isso garante que os dados estejam sempre corretos quando o usuario os visualiza.
+   */
+  private async atualizarReceitasVencidas(where?: { pacienteId?: string; medicoId?: string }) {
+    const filtro: any = {
+      status: StatusReceita.ATIVA,
+      validadeAte: { lt: new Date() },
+    };
+
+    if (where?.pacienteId) filtro.pacienteId = where.pacienteId;
+    if (where?.medicoId) filtro.medicoId = where.medicoId;
+
+    await prisma.receita.updateMany({
+      where: filtro,
+      data: { status: StatusReceita.VENCIDA },
+    });
+  }
+
   async criar(medicoUserId: string, data: CriarReceitaInput) {
     const medico = await prisma.medico.findUnique({
       where: { usuarioId: medicoUserId },
@@ -57,11 +79,18 @@ export class ReceitasService {
         medicoId: medico.id,
         validadeAte: new Date(data.validadeAte),
         observacoes: data.observacoes,
-        diagnostico: data.diagnostico,
+        diagnostico: data.diagnostico
+          ? normalizarDiagnostico(data.diagnostico)
+          : undefined,
         itens: {
+          // normalizarMedicamento converte para Title Case para evitar
+          // que "dipirona", "DIPIRONA", "Dipirona Sódica" gerem entradas
+          // separadas no ranking do dashboard
           create: data.itens.map((item) => ({
-            medicamento: item.medicamento,
-            principioAtivo: item.principioAtivo,
+            medicamento: normalizarMedicamento(item.medicamento),
+            principioAtivo: item.principioAtivo
+              ? normalizarMedicamento(item.principioAtivo)
+              : item.principioAtivo,
             dosagem: item.dosagem,
             formaFarmaceutica: item.formaFarmaceutica,
             quantidade: item.quantidade,
@@ -123,6 +152,10 @@ export class ReceitasService {
         where.medicoId = medico.id;
       }
     }
+
+    // Antes de listar, atualiza receitas que ja venceram mas ainda estao como ATIVA.
+    // Isso garante que o usuario sempre veja o status correto.
+    await this.atualizarReceitasVencidas(where);
 
     if (filters.status) {
       where.status = filters.status;
@@ -216,6 +249,18 @@ export class ReceitasService {
 
     if (!receita) {
       throw new NotFoundError("Receita não encontrada");
+    }
+
+    // Verifica se a receita esta vencida e atualiza o status se necessario
+    if (
+      receita.validadeAte < new Date() &&
+      receita.status === StatusReceita.ATIVA
+    ) {
+      await prisma.receita.update({
+        where: { id: receita.id },
+        data: { status: StatusReceita.VENCIDA },
+      });
+      receita.status = StatusReceita.VENCIDA;
     }
 
     if (userType === TipoUsuario.PACIENTE) {
@@ -315,7 +360,9 @@ export class ReceitasService {
       data: {
         validadeAte: data.validadeAte ? new Date(data.validadeAte) : undefined,
         observacoes: data.observacoes,
-        diagnostico: data.diagnostico,
+        diagnostico: data.diagnostico
+          ? normalizarDiagnostico(data.diagnostico)
+          : undefined,
         status: data.status,
       },
       include: {
@@ -470,9 +517,13 @@ export class ReceitasService {
         observacoes: receitaOriginal.observacoes,
         diagnostico: receitaOriginal.diagnostico,
         itens: {
+          // Tambem normaliza ao renovar, para corrigir dados antigos que
+          // possam ter sido gravados sem normalizacao
           create: receitaOriginal.itens.map((item: any) => ({
-            medicamento: item.medicamento,
-            principioAtivo: item.principioAtivo,
+            medicamento: normalizarMedicamento(item.medicamento),
+            principioAtivo: item.principioAtivo
+              ? normalizarMedicamento(item.principioAtivo)
+              : item.principioAtivo,
             dosagem: item.dosagem,
             formaFarmaceutica: item.formaFarmaceutica,
             quantidade: item.quantidade,

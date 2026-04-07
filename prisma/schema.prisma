@@ -14,6 +14,7 @@ enum TipoUsuario {
   PACIENTE
   MEDICO
   FARMACIA
+  ADMIN
 }
 
 enum StatusReceita {
@@ -67,6 +68,7 @@ model Paciente {
   cpf           String    @unique
   cartaoSus     String?   @map("cartao_sus")
   dataNascimento DateTime @map("data_nascimento")
+  pin           String?   // PIN numerico de 6 digitos (hash bcrypt) para login seguro
   sexo          Sexo?
   telefone      String?
   endereco      String?

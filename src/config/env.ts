@@ -14,7 +14,7 @@ export function getEnvConfig(): EnvConfig {
   return {
     DATABASE_URL: process.env.DATABASE_URL || "",
     JWT_SECRET: process.env.JWT_SECRET || "default-secret",
-    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
+    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "1h",
     JWT_REFRESH_SECRET:
       process.env.JWT_REFRESH_SECRET || "default-refresh-secret",
     JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || "30d",

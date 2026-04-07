@@ -12,6 +12,7 @@ export const loginPacienteSchema = z.object({
   dataNascimento: z.string().refine((date) => !isNaN(Date.parse(date)), {
     message: "Data de nascimento inválida",
   }),
+  pin: z.string().length(6, "PIN deve ter 6 dígitos").optional(),
 });
 
 // ==================== REGISTER SCHEMAS ====================
@@ -55,6 +56,12 @@ export const registerPacienteSchema = z.object({
   telefone: z.string().min(10, "Telefone inválido"),
   email: z.string().email("Email inválido").optional().nullable(),
   cartaoSus: z.string().optional().nullable(),
+  pin: z
+    .string()
+    .length(6, "PIN deve ter exatamente 6 dígitos")
+    .regex(/^\d{6}$/, "PIN deve conter apenas números")
+    .optional()
+    .nullable(),
 });
 
 export const refreshTokenSchema = z.object({
