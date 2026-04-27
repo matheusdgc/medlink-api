@@ -91,9 +91,24 @@ Retorne um objeto JSON com exatamente estes campos:
       );
 
       const textResponse = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!textResponse) return null;
+      if (!textResponse) {
+        console.warn("Gemini retornou resposta vazia. Candidatos:", JSON.stringify(response.data?.candidates));
+        return null;
+      }
 
-      const bula = JSON.parse(textResponse.trim()) as BulaIA;
+      // Remove delimitadores de markdown caso o modelo os inclua (```json ... ```)
+      const jsonLimpo = textResponse
+        .trim()
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "");
+
+      let bula: BulaIA;
+      try {
+        bula = JSON.parse(jsonLimpo) as BulaIA;
+      } catch (parseError) {
+        console.error("Falha ao interpretar JSON da resposta Gemini. Resposta recebida:", textResponse.slice(0, 500));
+        return null;
+      }
 
       if (!bula.medicamento) return null;
 
@@ -154,7 +169,12 @@ Se nao encontrar nenhum medicamento valido, retorne: []`;
       const textResponse = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!textResponse) return [];
 
-      return JSON.parse(textResponse.trim()) as string[];
+      const jsonLimpo = textResponse
+        .trim()
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "");
+
+      return JSON.parse(jsonLimpo) as string[];
     } catch {
       // Sugestoes sao opcionais — qualquer erro retorna lista vazia sem interromper o usuario
       return [];
