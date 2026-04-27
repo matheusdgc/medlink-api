@@ -1,4 +1,5 @@
 import axios from "axios";
+import { ServiceUnavailableError } from "../../types/index.js";
 
 interface BulaIA {
   medicamento: string;
@@ -104,9 +105,20 @@ Retorne um objeto JSON com exatamente estes campos:
 
       return bula;
     } catch (error: any) {
+      const status = error.response?.status;
+      const details = error.response?.data;
+
+      // Cota esgotada ou rate limit da API do Gemini
+      if (status === 429) {
+        console.warn("Gemini API: cota esgotada (429). Verifique o plano em https://aistudio.google.com");
+        throw new ServiceUnavailableError(
+          "O serviço de busca por IA está temporariamente indisponível por excesso de uso. Tente novamente em alguns minutos."
+        );
+      }
+
       console.error("Erro ao consultar Gemini:", error.message);
-      if (error.response?.data) {
-        console.error("Detalhes:", JSON.stringify(error.response.data));
+      if (details) {
+        console.error("Detalhes:", JSON.stringify(details));
       }
       return null;
     }
@@ -144,6 +156,7 @@ Se nao encontrar nenhum medicamento valido, retorne: []`;
 
       return JSON.parse(textResponse.trim()) as string[];
     } catch {
+      // Sugestoes sao opcionais — qualquer erro retorna lista vazia sem interromper o usuario
       return [];
     }
   }

@@ -153,3 +153,9 @@ export class ValidationError extends AppError {
     super(message, 422);
   }
 }
+
+export class ServiceUnavailableError extends AppError {
+  constructor(message: string = "Serviço temporariamente indisponível") {
+    super(message, 503);
+  }
+}

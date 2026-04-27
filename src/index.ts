@@ -19,6 +19,11 @@ import adminRoutes from "./modules/admin/admin.routes.js";
 const app = express();
 const config = getEnvConfig();
 
+// Necessario para funcionar corretamente atras de proxies (Railway, Heroku, Vercel, etc.)
+// O valor 1 significa: confie apenas no primeiro proxy na cadeia (o load balancer do hosting)
+// Sem isso, o express-rate-limit nao consegue identificar o IP real do usuario
+app.set("trust proxy", 1);
+
 app.use(
   cors({
     origin: [
