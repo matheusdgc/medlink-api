@@ -58,13 +58,6 @@ export function roleGuard(...allowedTypes: TipoUsuario[]) {
       throw new UnauthorizedError("Usuário não autenticado");
     }
 
-    // ADMIN Master bypassa qualquer restricao de papel.
-    // Isso evita ter que adicionar TipoUsuario.ADMIN em cada roleGuard
-    // espalhado pelo codigo — qualquer rota protegida por roleGuard
-    // e automaticamente acessivel pelo admin.
-    //
-    // Cast para string porque TipoUsuario.ADMIN so existira no tipo gerado
-    // pelo Prisma apos rodar "npx prisma generate" ou "npx prisma db push".
     if ((req.user.tipo as string) === "ADMIN") {
       return next();
     }

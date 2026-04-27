@@ -13,6 +13,18 @@ interface BulaIA {
   advertencias: string;
 }
 
+const CAMPOS_OBRIGATORIOS: (keyof BulaIA)[] = [
+  "principioAtivo",
+  "classe",
+  "indicacoes",
+  "posologia",
+  "contraindicacoes",
+  "efeitosColaterais",
+  "interacoes",
+  "armazenamento",
+  "advertencias",
+];
+
 export class BulasService {
   private geminiApiKey: string;
   private geminiUrl: string;
@@ -24,93 +36,72 @@ export class BulasService {
 
   async consultarBulaIA(medicamento: string): Promise<BulaIA | null> {
     if (!this.geminiApiKey) {
-      console.warn("GEMINI_API_KEY não configurada");
+      console.warn("GEMINI_API_KEY nao configurada");
       return null;
     }
 
-    const prompt = `Você é um assistente farmacêutico especializado em medicamentos brasileiros.
+    const prompt = `Voce e um assistente farmaceutico especializado em medicamentos brasileiros.
 
-Forneça informações detalhadas sobre o medicamento "${medicamento}" no formato JSON abaixo.
-Se o medicamento não existir ou você não tiver certeza, retorne null.
+Forneca informacoes detalhadas sobre o medicamento "${medicamento}".
+Responda SEMPRE em portugues do Brasil, com linguagem acessivel ao paciente.
 
-IMPORTANTE: 
-- Use informações precisas e atualizadas
-- Foque em medicamentos comercializados no Brasil
-- Se for um nome comercial, identifique o princípio ativo
-- Seja conciso mas completo
+Regras:
+- Se o nome for comercial (ex: "Tylenol"), identifique o principio ativo (ex: "Paracetamol") e use ambos
+- Se o medicamento nao existir, nao for um medicamento valido ou voce nao tiver certeza, retorne {"medicamento": null}
+- Foque em medicamentos regulamentados pela ANVISA e comercializados no Brasil
+- Cada campo deve ser completo, mas objetivo — evite repeticoes entre campos
 
-Retorne APENAS o JSON, sem markdown ou explicações:
+Retorne um objeto JSON com exatamente estes campos:
 
 {
-  "medicamento": "Nome comercial ou genérico",
-  "principioAtivo": "Princípio ativo",
-  "classe": "Classe terapêutica",
-  "indicacoes": "Para que serve o medicamento",
-  "posologia": "Como usar, doses recomendadas para adultos e crianças se aplicável",
-  "contraindicacoes": "Quando NÃO usar",
-  "efeitosColaterais": "Efeitos colaterais comuns e raros importantes",
-  "interacoes": "Interações medicamentosas importantes",
-  "armazenamento": "Como armazenar",
-  "advertencias": "Advertências importantes sobre uso"
+  "medicamento": "Nome comercial principal ou nome generico (ou null se nao encontrado/invalido)",
+  "principioAtivo": "Substancia quimica ativa. Ex: 'Dipirona Monoidratada 500mg'",
+  "classe": "Classe terapeutica e farmacologica. Ex: 'Analgésico e antipiretico (Pirazolona)'",
+  "indicacoes": "Para que doencas e sintomas o medicamento e indicado. Ex: dor, febre, inflamacao — seja especifico",
+  "posologia": "Como usar: doses para adultos e criancas (se aplicavel), intervalos, via de administracao, duracao maxima. Inclua exemplos concretos de dose",
+  "contraindicacoes": "Quem NAO deve usar: alergia ao principio ativo, gestacao/lactacao (se contraindicado), doencas que impedem o uso, faixa etaria restrita",
+  "efeitosColaterais": "Efeitos adversos: separe os frequentes (>1 em 10) dos raros porem graves. Use linguagem clara",
+  "interacoes": "Interacoes com outros medicamentos e alimentos: liste os principais com consequencia. Ex: 'Varfarina — potencializa efeito anticoagulante'",
+  "armazenamento": "Temperatura, umidade, protecao da luz, prazo apos abertura se aplicavel",
+  "advertencias": "Alertas criticos: uso na gestacao/lactacao, risco de dependencia, monitoramento necessario, populacoes de risco (idosos, hepatopatas, etc)"
 }`;
 
     try {
       const response = await axios.post(
         `${this.geminiUrl}?key=${this.geminiApiKey}`,
         {
-          contents: [
-            {
-              parts: [{ text: prompt }],
-            },
-          ],
+          contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.1,
             maxOutputTokens: 2048,
+            responseMimeType: "application/json",
           },
           safetySettings: [
-            {
-              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-              threshold: "BLOCK_NONE",
-            },
-            {
-              category: "HARM_CATEGORY_HARASSMENT",
-              threshold: "BLOCK_NONE",
-            },
-            {
-              category: "HARM_CATEGORY_HATE_SPEECH",
-              threshold: "BLOCK_NONE",
-            },
-            {
-              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-              threshold: "BLOCK_NONE",
-            },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
           ],
         },
         {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          timeout: 30000,
+          headers: { "Content-Type": "application/json" },
+          timeout: 20000,
         }
       );
 
-      const textResponse =
-        response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const textResponse = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!textResponse) return null;
 
-      if (!textResponse) {
-        return null;
+      const bula = JSON.parse(textResponse.trim()) as BulaIA;
+
+      if (!bula.medicamento) return null;
+
+      for (const campo of CAMPOS_OBRIGATORIOS) {
+        if (!bula[campo]) {
+          bula[campo] = "Informacao nao disponivel para este medicamento.";
+        }
       }
 
-      let cleanJson = textResponse
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
-
-      if (cleanJson.toLowerCase() === "null") {
-        return null;
-      }
-
-      const bula = JSON.parse(cleanJson) as BulaIA;
       return bula;
     } catch (error: any) {
       console.error("Erro ao consultar Gemini:", error.message);
@@ -122,15 +113,14 @@ Retorne APENAS o JSON, sem markdown ou explicações:
   }
 
   async sugerirMedicamentos(termo: string): Promise<string[]> {
-    if (!this.geminiApiKey) {
-      return [];
-    }
+    if (!this.geminiApiKey) return [];
 
-    const prompt = `Liste até 5 medicamentos brasileiros (nomes comerciais ou genéricos) que começam com ou são similares a "${termo}".
-Retorne APENAS um array JSON de strings, sem explicações:
+    const prompt = `Liste ate 6 medicamentos brasileiros (nomes comerciais ou genericos) que correspondem ou sao similares a "${termo}".
+Responda em portugues do Brasil.
+Inclua tanto nomes comerciais quanto genericos quando relevante.
+Retorne APENAS um array JSON de strings, sem explicacoes:
 ["Medicamento 1", "Medicamento 2", ...]
-
-Se não encontrar nenhum, retorne: []`;
+Se nao encontrar nenhum medicamento valido, retorne: []`;
 
     try {
       const response = await axios.post(
@@ -140,6 +130,7 @@ Se não encontrar nenhum, retorne: []`;
           generationConfig: {
             temperature: 0.1,
             maxOutputTokens: 256,
+            responseMimeType: "application/json",
           },
         },
         {
@@ -148,17 +139,10 @@ Se não encontrar nenhum, retorne: []`;
         }
       );
 
-      const textResponse =
-        response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
+      const textResponse = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!textResponse) return [];
 
-      const cleanJson = textResponse
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
-
-      return JSON.parse(cleanJson) as string[];
+      return JSON.parse(textResponse.trim()) as string[];
     } catch {
       return [];
     }

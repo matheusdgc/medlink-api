@@ -3,17 +3,6 @@ import { NotFoundError } from "../../types/index.js";
 import { StatusReceita } from "@prisma/client";
 
 export class AdminService {
-  /**
-   * Delecao permanente de receita do banco de dados.
-   *
-   * Diferenca em relacao ao "cancelar" do medico:
-   *   - cancelar: muda status para CANCELADA, o registro continua no banco.
-   *   - deletar (admin): remove fisicamente a receita e todos os dados relacionados.
-   *
-   * Precisa deletar a Dispensacao antes da Receita porque a FK de Dispensacao
-   * para Receita nao tem onDelete: Cascade no schema. ItemReceita ja tem
-   * onDelete: Cascade, entao e deletado automaticamente junto com a Receita.
-   */
   async deletarReceita(id: string) {
     const receita = await prisma.receita.findUnique({
       where: { id },
@@ -24,21 +13,15 @@ export class AdminService {
       throw new NotFoundError("Receita não encontrada");
     }
 
-    // Remove a dispensacao primeiro para nao violar a FK constraint
     if (receita.dispensacao) {
       await prisma.dispensacao.delete({ where: { receitaId: id } });
     }
 
-    // ItemReceita tem onDelete: Cascade, sera removido automaticamente
     await prisma.receita.delete({ where: { id } });
 
     return { id, mensagem: "Receita permanentemente removida do sistema" };
   }
 
-  /**
-   * Lista todas as receitas do sistema sem filtrar por medico ou paciente.
-   * Exclusivo para o admin, que tem visibilidade total.
-   */
   async listarTodasReceitas(filters: {
     status?: StatusReceita;
     pacienteNome?: string;
@@ -106,9 +89,6 @@ export class AdminService {
     };
   }
 
-  /**
-   * Retorna um resumo de totais para o painel do admin.
-   */
   async obterResumo() {
     const [totalReceitas, totalPacientes, totalMedicos, totalFarmacias] =
       await Promise.all([
