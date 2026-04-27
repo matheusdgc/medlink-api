@@ -45,25 +45,24 @@ export class BulasService {
 
 Medicamento: "${medicamento}"
 
-Regras:
+REGRAS CRITICAS:
+- TODOS os valores do JSON devem ser strings de texto simples — NUNCA arrays, objetos ou numeros
 - Nome comercial? Identifique o principio ativo e use ambos
 - Nao existe ou nao e medicamento valido? Retorne {"medicamento": null}
-- Seja BREVE: cada campo no maximo 2 frases ou lista curta de itens
-- Nao repita informacao entre campos
-- Foque no essencial para o paciente
+- Seja BREVE e direto, sem repeticoes entre campos
 
-JSON de saida (todos os campos obrigatorios):
+JSON de saida — cada valor deve ser uma STRING curta:
 {
   "medicamento": "nome principal (ou null)",
-  "principioAtivo": "substancia ativa e concentracao mais comum. Ex: Dipirona Monoidratada 500mg",
-  "classe": "classe terapeutica resumida. Ex: Analgésico e antipiretico",
-  "indicacoes": "lista curta: dor, febre, etc. Max 4 itens",
-  "posologia": "dose adulto padrao, intervalo, via. 1-2 frases. Ex: 500mg a cada 6h, oral, max 4x/dia",
-  "contraindicacoes": "lista curta dos principais. Max 4 itens",
-  "efeitosColaterais": "frequentes: lista curta. Graves: max 2 itens",
-  "interacoes": "max 3 interacoes mais importantes com consequencia resumida",
-  "armazenamento": "temperatura e cuidados essenciais. 1 frase",
-  "advertencias": "max 2 alertas criticos mais relevantes para o paciente"
+  "principioAtivo": "substancia ativa e concentracao. Ex: Dipirona Monoidratada 500mg",
+  "classe": "classe terapeutica. Ex: Analgésico e antipiretico",
+  "indicacoes": "texto corrido com as principais indicacoes, max 4 itens separados por virgula",
+  "posologia": "1 a 2 frases. Ex: Adultos: 500mg a cada 6h por via oral, max 4 doses/dia",
+  "contraindicacoes": "texto corrido com as principais, max 4 itens separados por virgula",
+  "efeitosColaterais": "1 a 2 frases descrevendo os mais comuns e o mais grave. Ex: Comuns: nausea, tontura. Grave raro: agranulocitose",
+  "interacoes": "1 a 2 frases com as 3 interacoes mais importantes e sua consequencia",
+  "armazenamento": "1 frase. Ex: Conservar em temperatura ambiente, protegido da luz e umidade",
+  "advertencias": "1 a 2 frases com os alertas mais criticos para o paciente"
 }`;
 
     try {
@@ -112,8 +111,19 @@ JSON de saida (todos os campos obrigatorios):
       if (!bula.medicamento) return null;
 
       for (const campo of CAMPOS_OBRIGATORIOS) {
-        if (!bula[campo]) {
+        const valor = bula[campo];
+        if (!valor) {
           bula[campo] = "Informacao nao disponivel para este medicamento.";
+        } else if (typeof valor !== "string") {
+          // Seguranca: o modelo pode retornar arrays ou objetos mesmo com instrucao contraria
+          // Converte para texto legivel para nao quebrar a renderizacao no frontend
+          if (Array.isArray(valor)) {
+            bula[campo] = (valor as unknown as string[]).join(", ");
+          } else {
+            bula[campo] = Object.entries(valor as unknown as Record<string, unknown>)
+              .map(([k, v]) => `${k}: ${Array.isArray(v) ? (v as string[]).join(", ") : v}`)
+              .join(". ");
+          }
         }
       }
 
