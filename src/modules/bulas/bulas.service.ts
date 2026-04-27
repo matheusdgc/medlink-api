@@ -32,7 +32,7 @@ export class BulasService {
 
   constructor() {
     this.geminiApiKey = process.env.GEMINI_API_KEY || "";
-    this.geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
+    this.geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
   }
 
   async consultarBulaIA(medicamento: string): Promise<BulaIA | null> {
