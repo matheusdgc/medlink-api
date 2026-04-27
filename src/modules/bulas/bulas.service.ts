@@ -41,30 +41,29 @@ export class BulasService {
       return null;
     }
 
-    const prompt = `Voce e um assistente farmaceutico especializado em medicamentos brasileiros.
+    const prompt = `Assistente farmaceutico brasileiro. Responda em portugues do Brasil, linguagem simples.
 
-Forneca informacoes detalhadas sobre o medicamento "${medicamento}".
-Responda SEMPRE em portugues do Brasil, com linguagem acessivel ao paciente.
+Medicamento: "${medicamento}"
 
 Regras:
-- Se o nome for comercial (ex: "Tylenol"), identifique o principio ativo (ex: "Paracetamol") e use ambos
-- Se o medicamento nao existir, nao for um medicamento valido ou voce nao tiver certeza, retorne {"medicamento": null}
-- Foque em medicamentos regulamentados pela ANVISA e comercializados no Brasil
-- Cada campo deve ser completo, mas objetivo — evite repeticoes entre campos
+- Nome comercial? Identifique o principio ativo e use ambos
+- Nao existe ou nao e medicamento valido? Retorne {"medicamento": null}
+- Seja BREVE: cada campo no maximo 2 frases ou lista curta de itens
+- Nao repita informacao entre campos
+- Foque no essencial para o paciente
 
-Retorne um objeto JSON com exatamente estes campos:
-
+JSON de saida (todos os campos obrigatorios):
 {
-  "medicamento": "Nome comercial principal ou nome generico (ou null se nao encontrado/invalido)",
-  "principioAtivo": "Substancia quimica ativa. Ex: 'Dipirona Monoidratada 500mg'",
-  "classe": "Classe terapeutica e farmacologica. Ex: 'Analgésico e antipiretico (Pirazolona)'",
-  "indicacoes": "Para que doencas e sintomas o medicamento e indicado. Ex: dor, febre, inflamacao — seja especifico",
-  "posologia": "Como usar: doses para adultos e criancas (se aplicavel), intervalos, via de administracao, duracao maxima. Inclua exemplos concretos de dose",
-  "contraindicacoes": "Quem NAO deve usar: alergia ao principio ativo, gestacao/lactacao (se contraindicado), doencas que impedem o uso, faixa etaria restrita",
-  "efeitosColaterais": "Efeitos adversos: separe os frequentes (>1 em 10) dos raros porem graves. Use linguagem clara",
-  "interacoes": "Interacoes com outros medicamentos e alimentos: liste os principais com consequencia. Ex: 'Varfarina — potencializa efeito anticoagulante'",
-  "armazenamento": "Temperatura, umidade, protecao da luz, prazo apos abertura se aplicavel",
-  "advertencias": "Alertas criticos: uso na gestacao/lactacao, risco de dependencia, monitoramento necessario, populacoes de risco (idosos, hepatopatas, etc)"
+  "medicamento": "nome principal (ou null)",
+  "principioAtivo": "substancia ativa e concentracao mais comum. Ex: Dipirona Monoidratada 500mg",
+  "classe": "classe terapeutica resumida. Ex: Analgésico e antipiretico",
+  "indicacoes": "lista curta: dor, febre, etc. Max 4 itens",
+  "posologia": "dose adulto padrao, intervalo, via. 1-2 frases. Ex: 500mg a cada 6h, oral, max 4x/dia",
+  "contraindicacoes": "lista curta dos principais. Max 4 itens",
+  "efeitosColaterais": "frequentes: lista curta. Graves: max 2 itens",
+  "interacoes": "max 3 interacoes mais importantes com consequencia resumida",
+  "armazenamento": "temperatura e cuidados essenciais. 1 frase",
+  "advertencias": "max 2 alertas criticos mais relevantes para o paciente"
 }`;
 
     try {
@@ -74,7 +73,7 @@ Retorne um objeto JSON com exatamente estes campos:
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.1,
-            maxOutputTokens: 2048,
+            maxOutputTokens: 3072,
             responseMimeType: "application/json",
           },
           safetySettings: [
