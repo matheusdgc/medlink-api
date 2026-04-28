@@ -73,11 +73,25 @@ export class ReceitasService {
       throw new ValidationError("A receita deve ter pelo menos um medicamento");
     }
 
+    // Valida o limite maximo de 30 dias de validade
+    const validadeAte = new Date(data.validadeAte);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const diasAteValidade = Math.round(
+      (validadeAte.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    if (diasAteValidade > 30) {
+      throw new ValidationError("A validade da receita não pode exceder 30 dias");
+    }
+    if (diasAteValidade < 1) {
+      throw new ValidationError("A data de validade deve ser futura");
+    }
+
     const receita = await prisma.receita.create({
       data: {
         pacienteId: data.pacienteId,
         medicoId: medico.id,
-        validadeAte: new Date(data.validadeAte),
+        validadeAte: validadeAte,
         observacoes: data.observacoes,
         diagnostico: data.diagnostico
           ? normalizarDiagnostico(data.diagnostico)

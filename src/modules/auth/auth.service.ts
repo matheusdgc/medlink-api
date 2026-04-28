@@ -112,12 +112,16 @@ export class AuthService {
     const dataNascimentoInformada = new Date(data.dataNascimento);
     const dataNascimentoCadastrada = new Date(paciente.dataNascimento);
 
+    // Usa metodos UTC para evitar que o fuso horario do servidor desloque
+    // datas armazenadas como midnight UTC para o dia anterior em UTC-3 (Brasilia).
+    // Ex: "1990-05-15T00:00:00Z" em UTC-3 = 1990-05-14 via getDate() — bug de login.
     const isSameDate =
-      dataNascimentoInformada.getFullYear() ===
-        dataNascimentoCadastrada.getFullYear() &&
-      dataNascimentoInformada.getMonth() ===
-        dataNascimentoCadastrada.getMonth() &&
-      dataNascimentoInformada.getDate() === dataNascimentoCadastrada.getDate();
+      dataNascimentoInformada.getUTCFullYear() ===
+        dataNascimentoCadastrada.getUTCFullYear() &&
+      dataNascimentoInformada.getUTCMonth() ===
+        dataNascimentoCadastrada.getUTCMonth() &&
+      dataNascimentoInformada.getUTCDate() ===
+        dataNascimentoCadastrada.getUTCDate();
 
     if (!isSameDate) {
       throw new UnauthorizedError("Data de nascimento incorreta");
